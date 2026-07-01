@@ -1,15 +1,16 @@
 # this is for user registration.
 users={}
 next_user=100
+def CReate_user():
+    
+    name=input("Enter your Full Name: ")
+    mobile_no=int(input("enter the mobile_no.:"))
+    password=input("enter the password:")
 
-name=input("Enter your Full Name: ")
-mobile_no=int(input("enter the mobile_no.:"))
-password=input("enter the password:")
-
-users[next_user]={
+    users[next_user]={
     "name":name,"mob_no":mobile_no,"pswd":password,"balance":0}
-next_user+=1
-print("User Registered Successfully")
+    next_user+=1
+    print("User Registered Successfully")
 
 
 # users login function.
