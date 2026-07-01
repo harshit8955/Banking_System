@@ -1,34 +1,26 @@
 # this is for user registration.
-users={}
-next_user=100
-def CReate_user():
-    
-    name=input("Enter your Full Name: ")
-    mobile_no=int(input("enter the mobile_no.:"))
-    password=input("enter the password:")
 
-    users[next_user]={
-    "name":name,"mob_no":mobile_no,"pswd":password,"balance":0}
-    next_user+=1
-    print("User Registered Successfully")
+accounts={}
+def create_account():
+    print("---Create New Account---")
+    name=(input("Enter your full name:"))
+    mobile_no=int(input("Enter your mobile number:"))
+    password=input("Enter the password:")
+    
+    intial_deposite=float(input("Enter the amount you want to deposite:"))
+    
+    if intial_deposite<0:
+        print("Amount can't be negetive:")
+        return    
+    New_account_no. = 100+len(accounts)
+    accounts[New_account_number]={
+        "name":name,
+        "password":password,
+        "current balance":intial_deposite
+    }
+    print("Account created successfully! Your account number is {New_account_number}")
+    print("Please save this number, you'll need it to log in.")
 
 
 # users login function.
 
-def login():
-    print("\n------------login----------")
-    acc=int(input("enter your account number:"))
-    
-    password=input("enter your password:")
-    if acc in users:
-        if users[acc]["pswd"]==password:
-            print("user is verified")
-            print("users Name:",name,",it is your account number:",next_user)
-            print("Mobile number:",mobile_no)
-        else:
-            print("user is faltu")
-    else:
-        print("faltu users account no. is not valid.")
-            
-
-login()
