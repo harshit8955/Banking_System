@@ -40,6 +40,7 @@ def verify_login(acc_no, password):
     if account is None:
         return "not_found"
 
+
     if account["password"] != password:
         return "wrong_password"
 
