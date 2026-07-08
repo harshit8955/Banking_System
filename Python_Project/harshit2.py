@@ -1,6 +1,7 @@
 #BANKING MANAGEMENT SYSTEM
 
 import streamlit as st
+import time
 
 
 st.set_page_config(page_title="Banking Management System", page_icon="🏦", layout="centered")
@@ -8,7 +9,13 @@ st.set_page_config(page_title="Banking Management System", page_icon="🏦", lay
 #replaces the global variables accounts and next_account
 
 if "logged_in_acc" not in st.session_state:
-    st.session_state.logged_in_acc = None   
+    st.session_state.logged_in_acc = None
+
+if "last_deposit_time" not in st.session_state:
+    st.session_state.last_deposit_time = 0
+
+if "last_password_change_time" not in st.session_state:
+    st.session_state.last_password_change_time = 0
     
 
 from db import conn, cursor
@@ -46,17 +53,17 @@ def verify_login(acc_no, password):
 
     return "success"
 
+from decimal import Decimal
+
 def do_deposit(acc_no, amount):
+
+    amount = Decimal(str(amount))
 
     if amount <= 0:
         return False, "Invalid Amount"
 
     cursor.execute(
-        """
-        UPDATE accounts
-        SET balance = balance + %s
-        WHERE account_no=%s
-        """,
+        "UPDATE accounts SET balance = balance + %s WHERE account_no=%s",
         (amount, acc_no)
     )
 
@@ -70,9 +77,6 @@ def do_deposit(acc_no, amount):
     balance = cursor.fetchone()["balance"]
 
     return True, f"Deposit Successful. Current Balance: ₹{balance:.2f}"
-
-
-from decimal import Decimal
 
 def do_withdraw(acc_no, amount):
 
@@ -253,36 +257,87 @@ def show_customer_dashboard():
 
         st.metric("Balance", f"₹{balance:.2f}")
 
+
     elif menu == "Deposit Money":
-        st.subheader("Deposit Money")
-        with st.form("deposit_form"):
-            amount = st.number_input("Enter Deposit Amount", min_value=0.0, step=100.0)
+        st.subheader("💰 Deposit Money")
+
+        with st.form("deposit_form", clear_on_submit=True):
+            amount = st.text_input(
+                "Enter Deposit Amount",
+                placeholder="Enter amount and press Enter"
+            )
             submitted = st.form_submit_button("Deposit")
+
         if submitted:
-            ok, msg = do_deposit(acc, amount)
-            (st.success if ok else st.error)(msg)
+            if time.time() - st.session_state.last_deposit_time < 60:
+                st.warning("Please wait 1 minute before making another deposit.")
+            elif amount.strip() == "":
+                st.error("Please enter an amount.")
+            else:
+                try:
+                    amount = float(amount)
+                    if amount <= 0:
+                        st.error("Amount must be greater than 0.")
+                    else:
+                        ok, msg = do_deposit(acc, amount)
+                        if ok:
+                            st.session_state.last_deposit_time = time.time()
+                            st.success(msg)
+                        else:
+                            st.error(msg)
+                except ValueError:
+                    st.error("Please enter a valid numeric amount.")
+
 
     elif menu == "Withdraw Money":
         st.subheader("Withdraw Money")
-        with st.form("withdraw_form"):
-            amount = st.number_input("Enter Withdraw Amount", min_value=0.0, step=100.0)
+
+        with st.form("withdraw_form", clear_on_submit=True):
+            amount = st.text_input(
+                "Enter Withdraw Amount",
+                placeholder="Enter amount and press Enter"
+            )
             submitted = st.form_submit_button("Withdraw")
+
         if submitted:
-            ok, msg = do_withdraw(acc, amount)
-            (st.success if ok else st.error)(msg)
+            if amount.strip() == "":
+                st.error("Please enter an amount.")
+            else:
+                try:
+                    amount = float(amount)
+                    if amount <= 0:
+                        st.error("Amount must be greater than 0.")
+                    else:
+                        ok, msg = do_withdraw(acc, amount)
+                        (st.success if ok else st.error)(msg)
+                except ValueError:
+                    st.error("Please enter a valid numeric amount.")
 
     elif menu == "Transfer Money":
         st.subheader("Transfer Money")
-        with st.form("transfer_form"):
+        with st.form("transfer_form", clear_on_submit=True):
             receiver = st.text_input("Enter Receiver Account Number")
-            amount = st.number_input("Enter Amount", min_value=0.0, step=100.0)
+            amount = st.text_input(
+                "Enter Amount",
+                placeholder="Enter amount and press Enter"
+            )
             submitted = st.form_submit_button("Transfer")
+
         if submitted:
             if not receiver.strip().isdigit():
                 st.error("Please enter a valid numeric account number.")
+            elif amount.strip() == "":
+                st.error("Please enter an amount.")
             else:
-                ok, msg = do_transfer(acc, int(receiver), amount)
-                (st.success if ok else st.error)(msg)
+                try:
+                    amount = float(amount)
+                    if amount <= 0:
+                        st.error("Amount must be greater than 0.")
+                    else:
+                        ok, msg = do_transfer(acc, int(receiver), amount)
+                        (st.success if ok else st.error)(msg)
+                except ValueError:
+                    st.error("Please enter a valid numeric amount.")
 
     elif menu == "View Profile":
         st.subheader("Profile")
@@ -299,8 +354,17 @@ def show_customer_dashboard():
             new_pw = st.text_input("Enter New Password", type="password")
             submitted = st.form_submit_button("Change Password")
         if submitted:
-            ok, msg = do_change_password(acc, old_pw, new_pw)
-            (st.success if ok else st.error)(msg)
+            if time.time() - st.session_state.last_password_change_time < 60:
+                st.warning("Please wait 1 minute before changing password again.")
+            elif not old_pw.strip() or not new_pw.strip():
+                st.error("Please fill in both password fields.")
+            else:
+                ok, msg = do_change_password(acc, old_pw, new_pw)
+                if ok:
+                    st.session_state.last_password_change_time = time.time()
+                    st.success(msg)
+                else:
+                    st.error(msg)
 
     elif menu == "Logout":
         st.session_state.logged_in_acc = None
